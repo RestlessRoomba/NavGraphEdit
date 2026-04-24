@@ -4,6 +4,50 @@ html, body {
   height: 100%;
 }
 
+/* Default Map */
 #map {
   height: 100%;
+  cursor: default;
+}
+
+/* Nodes (Markers) */
+.leaflet-marker-icon {
+  cursor: pointer;
+}
+
+.leaflet-marker-icon.no-click {
+  pointer-events: none;
+}
+
+.leaflet-marker-icon.transparent {
+  opacity: 0.3;
+  transition: opacity 0.15s ease;
+}
+
+/* Edges (Polylines) */
+.leaflet-interactive {
+  cursor: pointer;
+}
+
+/* Toolbar */
+#toolbar {
+  position: absolute;
+  top: 10px;
+  left: 55px;
+  z-index: 1000;
+  display: flex;
+  gap: 8px;
+}
+
+#toolbar button {
+  padding: 6px 10px;
+  cursor: pointer;
+  border: none;
+  background: white;
+  border-radius: 4px;
+}
+
+#toolbar button.active {
+  background: #4a90e2;
+  color: white;
 }
