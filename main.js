@@ -2,6 +2,7 @@ let nodes = [];
 let edges = [];
 let edgeStartNode = null;
 let shiftPressed = false;
+let ctrlPressed = false;
 let lastTool = "select";
 let currentTool = "select";
 let selectedObject = null;
@@ -44,9 +45,18 @@ function selectNode(node) {
 }
 
 function addNodeToMap(node) {
-    const marker = L.marker([node.lat, node.lng]).addTo(map);
+    const marker = L.marker([node.lat, node.lng], {
+        draggable: false
+    }).addTo(map);
     node.marker = marker;
-    setMarkerEditMode(true);
+    
+    setTimeout(() => {
+    const el = marker.getElement();
+    if (el && currentTool === "node") {
+        el.classList.add('transparent');
+        el.classList.add('no-click');
+    }
+    }, 0);
 
     marker.on('click', function() { // Click on Marker
         if (currentTool === "select") { // Node selection
@@ -59,6 +69,35 @@ function addNodeToMap(node) {
             handleEdgeCreation(node);
         }
     });
+
+    // Node Drag&Drop
+    marker.on('drag', function(e) {
+        if (!ctrlPressed || currentTool !== "select") return;   // Only with ctrl down and in select tool
+
+        const latlng = e.target.getLatLng();
+        node.lat = latlng.lat;
+        node.lng = latlng.lng;
+        updateConnectedEdges(node);
+    });
+}
+
+// Update edges dynamically upong node drag&drop
+function updateConnectedEdges(node) {
+    edges.forEach(edge => {
+        if (edge.from === node.id || edge.to === node.id) { // Find every edge that is connected to this node
+            const nodeA = nodes.find(n => n.id === edge.from);  // For these edges, find both connected nodes
+            const nodeB = nodes.find(n => n.id === edge.to);
+
+            if (!nodeA || !nodeB) return;   // Safety
+
+            const newLatLngs = [    // set new LatLngs
+                [nodeA.lat, nodeA.lng],
+                [nodeB.lat, nodeB.lng]
+            ];
+
+            edge.line.setLatLngs(newLatLngs);
+        }
+    })
 }
 
 // Edge Creation
@@ -73,13 +112,23 @@ function handleEdgeCreation(node) {
 }
 
 // Edge Creation
-function createEdge(nodeA, nodeB) { // dont create edges from node to itself
-    if (nodeA.id === nodeB.id) {
-        console.log("Cant connect a node to itself. Abort.")
+function createEdge(nodeA, nodeB) { 
+    if (nodeA.id === nodeB.id) {    // Don't create edges from node to itself
+        console.log("Can't connect a node to itself. Abort.")
         return;
-    };  
+    };
 
-    const edge = {
+    const exists = edges.some(edge =>   // Boolean exists is true when (some returns true when edge is found)
+    (edge.from === nodeA.id && edge.to === nodeB.id) || // edge already exists or
+    (edge.from === nodeB.id && edge.to === nodeA.id)    // reversed edge already exists
+    );
+
+    if (exists) {   // Don't create edges that already exist
+        console.log("Edge already exists. Abort");
+        return;
+    }
+
+    const edge = {  // Create edge
         id: generateUUID(),
         type: "edge",
         from: nodeA.id,
@@ -150,24 +199,32 @@ document.addEventListener('keyup', function(e) {    // Shift is up?
     }
 });
 
-// Info Panel
-function showInfoPanel(obj) {
-    if (obj.type === "node") {
-        console.log("UUID: ", obj.id);
-        console.log("Lat: ", obj.lat);
-        console.log("Lng: ", obj.lng);
-    }
+// Ctrl Key Listener (Drag&Drop)
+document.addEventListener('keydown', function(e) {  // Control is down?
+    if (e.key === 'Control') {
+        ctrlPressed = true; // flip
 
-    if (obj.type === "edge") {
-        console.log("UUID: ", obj.id);
-        console.log("From: ", obj.from);
-        console.log("To: ", obj.to);
+        if (currentTool === "select") {
+            map.getContainer().style.cursor = 'move';   // Cursor UI move
+            nodes.forEach(n => n.marker.dragging.enable()); // Enable dragging for each marker
+        }
     }
-}
+});
+
+document.addEventListener('keyup', function(e) {    // Control is up?
+    if (e.key === 'Control') {
+        ctrlPressed = false;    // flip
+        map.getContainer().style.cursor = '';   // Cursor UI default
+        nodes.forEach(n => n.marker.dragging.disable()); // Disable dragging for each marker
+    }
+});
 
 // Tool Switching
 function setTool(tool) {
     currentTool = tool;
+    edgeStartNode = null;
+    selectedObject = null;
+    hideInfoPanel();
 
     if (tool === "select") {
         map.getContainer().style.cursor = '';   // Cursor UI -> default
@@ -192,3 +249,45 @@ function setTool(tool) {
 document.getElementById("tool-select").onclick = () => setTool("select");
 document.getElementById("tool-node").onclick = () => setTool("node");
 document.getElementById("tool-edge").onclick = () => setTool("edge");
+
+// Info Panel
+function showInfoPanel(obj) {
+
+    // Define objects via html reference
+    const panel = document.getElementById("info-panel");
+    const title = document.getElementById("info-title");
+    const content = document.getElementById("info-content");
+
+    panel.classList.remove("hidden");   // show
+
+    if (obj.type === "node") {  // For Nodes
+        title.textContent = "Node";
+
+        content.innerHTML = `
+            <div>UUID: ${obj.id}</div>
+            <div>Lat: ${obj.lat}</div>
+            <div>Lng: ${obj.lng}</div>
+        `;
+    }
+
+    if (obj.type === "edge") {  // For Edges
+        title.textContent = "Edge";
+
+        content.innerHTML = `
+            <div>UUID: ${obj.id}</div>
+            <div>From: ${obj.from}</div>
+            <div>To: ${obj.to}</div>
+        `;
+    }
+}
+
+    // Hide Info Panel
+function hideInfoPanel() {
+    document.getElementById('info-panel').classList.add("hidden"); // hide
+}
+
+    // Delete Button
+document.getElementById('delete-btn').onClick = function() {
+    if (!selectedObject) return;    // Safety, only delete selected objects
+    console.log("Delete: ", selectedObject.id);
+};
