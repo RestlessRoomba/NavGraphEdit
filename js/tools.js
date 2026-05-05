@@ -1,15 +1,18 @@
-import { currentTool } from './state.js';
+import { state } from './state.js';
+import { map } from './map.js';
+import { hideInfoPanel, setMarkerEditMode } from './ui.js';
 
 // Tool switching
 export function setTool(tool) {
-    currentTool = tool;
+    state.currentTool = tool;
 
-    nodes.forEach(n => {    // Disable dragging upon tool switch
+    map.dragging.enable();  // Enable map dragging upon tool switch
+    state.nodes.forEach(n => {    // Disable dragging upon tool switch
         if (n.marker) n.marker.dragging.disable();
     });
 
-    edgeStartNode = null;
-    selectedObject = null;
+    state.edgeStartNode = null;
+    state.selectedObject = null;
     hideInfoPanel();
 
     if (tool === "select") {

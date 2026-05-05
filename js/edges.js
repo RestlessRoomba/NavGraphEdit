@@ -1,8 +1,7 @@
-import { edges, nodes } from './state.js';
+import { state } from './state.js';
 import { map } from './map.js';
-import { generateUUID } from './main.js';
+import { generateUUID } from './utils.js';
 import { selectEdge } from './ui.js';
-
 
 // Edge creation
 export function createEdge(nodeA, nodeB) { 
@@ -11,7 +10,7 @@ export function createEdge(nodeA, nodeB) {
         return;
     };
 
-    const exists = edges.some(edge =>   // Boolean exists is true when (some returns true when edge is found)
+    const exists = state.edges.some(edge =>   // Boolean exists is true when (some returns true when edge is found)
     (edge.from === nodeA.id && edge.to === nodeB.id) || // edge already exists or
     (edge.from === nodeB.id && edge.to === nodeA.id)    // reversed edge already exists
     );
@@ -28,19 +27,19 @@ export function createEdge(nodeA, nodeB) {
         to: nodeB.id
     };
 
-    edges.push(edge);
+    state.edges.push(edge);
     addEdgeToMap(nodeA, nodeB, edge);
-    console.log(edges);
+    console.log(state.edges);
 }
 
 // Handle Edge Creation (2-Point-Logic)
-function handleEdgeCreation(node) {
-    if (edgeStartNode === null) {   // Case of first node
-        edgeStartNode = node;
+export function handleEdgeCreation(node) {
+    if (state.edgeStartNode === null) {   // Case of first node
+        state.edgeStartNode = node;
         console.log("Edge Start: ", node.id);
     } else {    // Case of second node
-        createEdge(edgeStartNode, node);
-        edgeStartNode = null;
+        createEdge(state.edgeStartNode, node);
+        state.edgeStartNode = null;
     }
 }
 
@@ -59,18 +58,18 @@ export function addEdgeToMap(nodeA, nodeB, edge) {
 
     line.on('click', function(e) {
         L.DomEvent.stopPropagation(e);
-        if (currentTool === "select") {
+        if (state.currentTool === "select") {
             selectEdge(edge);
         }
     })
 }
 
 // Update edges dynamically upong node drag&drop
-function updateConnectedEdges(node) {
-    edges.forEach(edge => {
+export function updateConnectedEdges(node) {
+    state.edges.forEach(edge => {
         if (edge.from === node.id || edge.to === node.id) { // Find every edge that is connected to this node
-            const nodeA = nodes.find(n => n.id === edge.from);  // For these edges, find both connected nodes
-            const nodeB = nodes.find(n => n.id === edge.to);
+            const nodeA = state.nodes.find(n => n.id === edge.from);  // For these edges, find both connected nodes
+            const nodeB = state.nodes.find(n => n.id === edge.to);
 
             if (!nodeA || !nodeB) return;   // Safety
 
