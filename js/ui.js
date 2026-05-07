@@ -1,5 +1,6 @@
 import { state } from './state.js';
 import { map } from './map.js';
+import { exportGraph, importGraph } from './io.js';
 
 // Node selection
 export function selectNode(node) {
@@ -108,4 +109,18 @@ document.getElementById('delete-btn').onclick = function () {
     state.selectedObject = null;   // Reset selectedObject
     state.edgeStartNode = null;   // Reset StartNode
     hideInfoPanel();
+};
+
+// Export-Button
+document.getElementById('export-btn').onclick = exportGraph;
+
+// Load-Button
+document.getElementById('load-btn').onclick = function () {
+    document.getElementById('import-input').click();
+};
+
+// Import-Input
+document.getElementById('import-input').onchange = function(event) {
+    importGraph(event.target.files[0]); // Process browser-event and give file to IO
+    event.target.value = "";    // Reset input value
 };
