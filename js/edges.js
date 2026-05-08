@@ -4,7 +4,12 @@ import { generateUUID } from './utils.js';
 import { selectEdge } from './ui.js';
 
 // Edge creation
-export function createEdge(nodeA, nodeB) { 
+export function createEdge(
+    nodeA,
+    nodeB,
+    id = null,
+    wheelchairAccessible = true
+    ) { 
     if (nodeA.id === nodeB.id) {    // Don't create edges from node to itself
         console.log("Can't connect a node to itself. Abort.")
         return;
@@ -21,15 +26,17 @@ export function createEdge(nodeA, nodeB) {
     }
 
     const edge = {  // Create edge
-        id: generateUUID(),
+        id: id ?? generateUUID(),
         type: "edge",
         from: nodeA.id,
-        to: nodeB.id
+        to: nodeB.id,
+        wheelchairAccessible
     };
 
     state.edges.push(edge);
     addEdgeToMap(nodeA, nodeB, edge);
     console.log(state.edges);
+    return edge;
 }
 
 // Handle Edge Creation (2-Point-Logic)

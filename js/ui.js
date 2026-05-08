@@ -61,7 +61,22 @@ export function showInfoPanel(obj) {
             <div>UUID: ${obj.id}</div>
             <div>From: ${obj.from}</div>
             <div>To: ${obj.to}</div>
+
+            <label>
+                <input
+                    type="checkbox"
+                    id="wheelchair-checkbox"
+                    ${obj.wheelchairAccessible !== false ? "checked" : ""}
+                >
+                Wheelchair accessible
+            </label>
         `;
+
+        const checkbox = document.getElementById("wheelchair-checkbox");
+        checkbox.addEventListener("change", function() {
+            obj.wheelchairAccessible = this.checked;
+            console.log("Wheelchair accessible: ", obj.wheelchairAccessible);
+        });
     }
 }
 
@@ -74,42 +89,45 @@ export function hideInfoPanel() {
 document.getElementById('delete-btn').onclick = function () {
     if (!state.selectedObject) return;    // Safety, only for selected objects
 
-    // If Node Selected
-    if (state.selectedObject.type === "node") {
-        if (state.selectedObject.marker) {
-            map.removeLayer(state.selectedObject.marker); // Delete marker from map
-        }
+    if (state.selectedObject.type === "node") { // If Node Selected
+        deleteNode(state.selectedObject);
 
-        // All connected Edges to the selected Node
-        const edgesToRemove = state.edges.filter(e => e.from === state.selectedObject.id || e.to === state.selectedObject.id);
-
-        // Delete connected Edges from map
-        edgesToRemove.forEach(edge => {
-            if (edge.line) {
-                map.removeLayer(edge.line);
-            }
-        });
-
-        // Delete Edges from List
-        state.edges = state.edges.filter(e => e.from !== state.selectedObject.id && e.to !== state.selectedObject.id);
-
-        // Delete Nodes from List
-        state.nodes = state.nodes.filter(n => n.id !== state.selectedObject.id);
-
-    // If Edge selected
-    } else if (state.selectedObject.type === "edge") {
-        if (state.selectedObject.line) {
-            map.removeLayer(state.selectedObject.line);  // Delete Edge from map
-        }
-
-        // Delete Edge from List
-        state.edges = state.edges.filter(e => e.id !== state.selectedObject.id);
+    } else if (state.selectedObject.type === "edge") {  // If Edge selected
+        deleteEdge(state.selectedObject);
     }
 
     state.selectedObject = null;   // Reset selectedObject
     state.edgeStartNode = null;   // Reset StartNode
     hideInfoPanel();
 };
+
+// Delete Node
+export function deleteNode(node) {
+    if (node.marker) {
+            map.removeLayer(node.marker); // Delete marker from map
+        }
+
+        // All connected Edges to the selected Node
+        const edgesToRemove = state.edges.filter(e => e.from === node.id || e.to === node.id);
+
+        // Delete connected Edges from map
+        edgesToRemove.forEach(edge => {
+            deleteEdge(edge);
+        });
+
+        // Delete Nodes from List
+        state.nodes = state.nodes.filter(n => n.id !== node.id);
+}
+
+// Delete Edge
+export function deleteEdge(edge) {
+    if (edge.line) {
+            map.removeLayer(edge.line);  // Delete Edge from map
+        }
+
+        // Delete Edge from List
+        state.edges = state.edges.filter(e => e.id !== edge.id);
+}
 
 // Export-Button
 document.getElementById('export-btn').onclick = exportGraph;

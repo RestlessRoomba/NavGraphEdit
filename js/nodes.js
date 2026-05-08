@@ -4,9 +4,9 @@ import { generateUUID } from './utils.js';
 import { handleEdgeCreation, updateConnectedEdges } from './edges.js';
 import { selectNode, showInfoPanel } from './ui.js';
 
-export function createNode(latlng) {
+export function createNode(latlng, id = null) {
     const node = {
-        id: generateUUID(),
+        id: id ?? generateUUID(),   // Only if no UUID was passed
         type: "node",
         lat: latlng.lat,
         lng: latlng.lng,
@@ -14,6 +14,7 @@ export function createNode(latlng) {
     state.nodes.push(node)
     console.log(state.nodes);
     addNodeToMap(node);
+    return node;
 }
 
 function addNodeToMap(node) {
