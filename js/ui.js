@@ -1,6 +1,8 @@
 import { state } from './state.js';
 import { map } from './map.js';
 import { exportGraph, importGraph } from './io.js';
+import { createEdge } from './edges.js';
+import { createNode } from './nodes.js';
 
 // Node selection
 export function selectNode(node) {
@@ -62,20 +64,31 @@ export function showInfoPanel(obj) {
             <div>From: ${obj.from}</div>
             <div>To: ${obj.to}</div>
 
-            <label>
-                <input
-                    type="checkbox"
-                    id="wheelchair-checkbox"
-                    ${obj.wheelchairAccessible !== false ? "checked" : ""}
-                >
-                Wheelchair accessible
-            </label>
+            <div>
+                <label>
+                    <input
+                        type="checkbox"
+                        id="wheelchair-checkbox"
+                        ${obj.wheelchairAccessible !== false ? "checked" : ""}
+                    >
+                    Wheelchair accessible
+                </label>
+            </div>
+
+            <div>
+                <button id="split-edge-btn">Split Edge</button>
+            </div>
         `;
 
         const checkbox = document.getElementById("wheelchair-checkbox");
         checkbox.addEventListener("change", function() {
             obj.wheelchairAccessible = this.checked;
             console.log("Wheelchair accessible: ", obj.wheelchairAccessible);
+        });
+
+        const splitButton = document.getElementById("split-edge-btn");
+        splitButton.addEventListener("click", function() {
+            splitEdge(obj);
         });
     }
 }
@@ -127,6 +140,45 @@ export function deleteEdge(edge) {
 
         // Delete Edge from List
         state.edges = state.edges.filter(e => e.id !== edge.id);
+}
+
+// Split Edge
+export function splitEdge(edge) {
+    // Find connected nodes of old edge
+    const nodeA = state.nodes.find(n => n.id === edge.from);
+    const nodeB = state.nodes.find(n => n.id === edge.to);
+    if (!nodeA || !nodeB) return;   // Safety
+
+    // Calculate middle
+    const middleLat = (nodeA.lat + nodeB.lat) / 2;
+    const middleLng = (nodeA.lng + nodeB.lng) / 2;
+
+    // Create new node
+    const newNode = createNode({
+        lat: middleLat,
+        lng: middleLng
+    });
+
+    // Delete the old edge
+    deleteEdge(edge);   
+
+    // Create two new edges
+    createEdge(
+        nodeA,
+        newNode,
+        undefined,
+        edge.wheelchairAccessible
+    );
+
+    createEdge(
+        newNode,
+        nodeB,
+        undefined,
+        edge.wheelchairAccessible
+    );
+
+    state.selectedObject = null;
+    hideInfoPanel();
 }
 
 // Export-Button

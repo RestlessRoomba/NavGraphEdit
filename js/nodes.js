@@ -4,6 +4,12 @@ import { generateUUID } from './utils.js';
 import { handleEdgeCreation, updateConnectedEdges } from './edges.js';
 import { selectNode, showInfoPanel } from './ui.js';
 
+const customIcon = L.divIcon({
+    className: 'custom-node-marker',
+    iconSize: [14, 14],
+    iconAnchor: [7, 7]
+});
+
 export function createNode(latlng, id = null) {
     const node = {
         id: id ?? generateUUID(),   // Only if no UUID was passed
@@ -19,7 +25,8 @@ export function createNode(latlng, id = null) {
 
 function addNodeToMap(node) {
     const marker = L.marker([node.lat, node.lng], {
-        draggable: false
+        draggable: false,
+        icon: customIcon
     }).addTo(map);
     node.marker = marker;
     
