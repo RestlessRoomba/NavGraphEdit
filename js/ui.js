@@ -63,6 +63,7 @@ export function showInfoPanel(obj) {
             <div>UUID: ${obj.id}</div>
             <div>From: ${obj.from}</div>
             <div>To: ${obj.to}</div>
+            <div>Weight: ${obj.weight.toFixed(2)} m</div>
 
             <div>
                 <label>

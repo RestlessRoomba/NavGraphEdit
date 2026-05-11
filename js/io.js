@@ -17,7 +17,9 @@ export function exportGraph() {
             from: edge.from,
             to: edge.to,
 
-            wheelchairAccessible: edge.wheelchairAccessible
+            wheelchairAccessible: edge.wheelchairAccessible,
+
+            weight: edge.weight
         }))
     };
 

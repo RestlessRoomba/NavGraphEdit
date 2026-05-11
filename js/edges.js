@@ -2,6 +2,7 @@ import { state } from './state.js';
 import { map } from './map.js';
 import { generateUUID } from './utils.js';
 import { selectEdge } from './ui.js';
+import { calculateDistance } from './geometry.js';
 
 // Edge creation
 export function createEdge(
@@ -28,9 +29,13 @@ export function createEdge(
     const edge = {  // Create edge
         id: id ?? generateUUID(),
         type: "edge",
+
         from: nodeA.id,
         to: nodeB.id,
-        wheelchairAccessible
+
+        wheelchairAccessible,
+
+        weight: calculateDistance(nodeA, nodeB)
     };
 
     state.edges.push(edge);
@@ -86,6 +91,7 @@ export function updateConnectedEdges(node) {
             ];
 
             edge.line.setLatLngs(newLatLngs);
+            edge.weight = calculateDistance(nodeA, nodeB);
         }
     })
 }
