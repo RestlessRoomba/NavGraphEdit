@@ -9,7 +9,8 @@ export function exportGraph() {
         nodes: state.nodes.map(node => ({   // New array of nodes
             id: node.id,
             lat: node.lat,
-            lng: node.lng
+            lng: node.lng,
+            tags: node.tags || []
         })),
 
         edges: state.edges.map(edge => ({   // New array of edges
@@ -72,7 +73,8 @@ export function importGraph(file) {
                 importedData.nodes.forEach(nodeData => {
                     createNode( {
                         lat: nodeData.lat,
-                        lng: nodeData.lng
+                        lng: nodeData.lng,
+                        tags: nodeData.tags || []
                     },
                     nodeData.id // Pass node-id into createNode()
                 );
