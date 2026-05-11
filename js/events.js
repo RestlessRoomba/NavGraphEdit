@@ -13,6 +13,9 @@ map.on('click', function(e) {   // Click on Map
 
 // Shift Key Listener (Shortcut)
 document.addEventListener('keydown', function(e) {  // Shift is down?
+    // Disable shortcuts if typing
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
     if (e.key === 'Shift' && !state.shiftPressed) {
         state.shiftPressed = true;    // flip
         state.lastTool = state.currentTool; // save current tool
@@ -21,6 +24,9 @@ document.addEventListener('keydown', function(e) {  // Shift is down?
 });
 
 document.addEventListener('keyup', function(e) {    // Shift is up?
+    // Disable shortcuts if typing
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
     if (e.key === 'Shift') {
         state.shiftPressed = false;   // flip and
         setTool(state.lastTool); // switch back to last used tool

@@ -63,7 +63,7 @@ export function addEdgeToMap(nodeA, nodeB, edge) {
     ];
 
     const line = L.polyline(latlngs, {
-        color: 'blue'
+        color: edge.wheelchairAccessible == true ? 'blue' : 'red'  // check for checkbox(If true - blue; else: red)
     }).addTo(map);
 
     edge.line = line;

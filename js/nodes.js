@@ -16,6 +16,7 @@ export function createNode(latlng, id = null) {
         type: "node",
         lat: latlng.lat,
         lng: latlng.lng,
+        tags: latlng.tags || [],
     };
     state.nodes.push(node)
     console.log(state.nodes);
