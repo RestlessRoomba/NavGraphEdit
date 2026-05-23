@@ -7,5 +7,8 @@ export const state = {
     ctrlPressed: false,
     lastTool: "select",
     currentTool: "select",
-    selectedObject: null
+    selectedObject: null,
+
+    schemaVersion: 1,
+    graphVersion: 1
 };

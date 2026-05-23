@@ -2,10 +2,18 @@ import { state } from './state.js';
 import { map } from './map.js';
 import { createNode } from './nodes.js';
 import { createEdge } from './edges.js';
+import { updateVersionInput } from './ui.js';
 
 // Export
 export function exportGraph() {
-    const exportData = {    
+    const exportData = {
+        metadata: {
+            schemaVersion: state.schemaVersion,
+            graphVersion: state.graphVersion,
+            updatedAt: new Date().toISOString(),
+            generator: "NavGraphEdit"
+        },
+
         nodes: state.nodes.map(node => ({   // New array of nodes
             id: node.id,
             lat: node.lat,
@@ -51,6 +59,10 @@ export function importGraph(file) {
 
         try {
             const importedData = JSON.parse(e.target.result);   // Parse file into JS-objects
+
+            state.schemaVersion = importedData.metadata?.schemaVersion ?? 1;    // Get schemaVersion
+            state.graphVersion = importedData.metadata?.graphVersion ?? 1;  // Get graphVersion
+            updateVersionInput();
 
             state.nodes.forEach(node => {   // Remove all markers
                 if (node.marker) {

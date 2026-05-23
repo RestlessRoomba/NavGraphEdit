@@ -256,3 +256,43 @@ document.getElementById('import-input').onchange = function(event) {
     importGraph(event.target.files[0]); // Process browser-event and give file to IO
     event.target.value = "";    // Reset input value
 };
+
+// Version Input
+const versionInput = document.getElementById("graph-version-input");
+
+versionInput.value = state.graphVersion;
+
+versionInput.addEventListener("input", function() {
+    const value = Number(versionInput.value);
+
+    if (!Number.isInteger(value) || value < 1) {
+        versionInput.value = state.graphVersion;    // Set to working version
+        return;
+    }
+
+    state.graphVersion = value; // Set to version from json file
+});
+
+// Update Version Input
+export function updateVersionInput() {
+    const versionInput = document.getElementById("graph-version-input");
+
+    if (versionInput) {
+        versionInput.value = state.graphVersion;
+        decrementVersionButton.disabled = state.graphVersion <= 1;  // Deactivate Decrement-Button if Version = 1
+    }
+}
+
+// Increment Version Button
+document.getElementById("increment-version-btn").onclick = function () {
+    state.graphVersion += 1;
+    updateVersionInput();
+};
+
+// Decrement Version Button
+document.getElementById("decrement-version-btn").onclick = function () {
+    if (state.graphVersion <= 1) return;
+
+    state.graphVersion -= 1;
+    updateVersionInput();
+};

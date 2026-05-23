@@ -68,6 +68,48 @@ html, body {
   color: white;
 }
 
+/* Version Label */
+#version-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 6px 10px;
+
+  background: white;
+  border-radius: 4px;
+
+  font-family: inherit;
+  font-size: 14px;
+}
+
+#graph-version-input {
+  width: 48px;
+
+  border: none;
+  outline: none;
+
+  font-family: inherit;
+  font-size: 14px;
+
+  text-align: center;
+  background: transparent;
+
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+#graph-version-input::-webkit-outer-spin-button,
+#graph-version-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+#toolbar button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Info Panel*/
 #info-panel {
   position: absolute;
