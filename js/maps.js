@@ -1,3 +1,5 @@
+import { state } from './state.js';
+
 const MAX_NATIVE_ZOOM = 19;
 const MAX_EDITOR_ZOOM = 23;
 
@@ -17,18 +19,28 @@ const satelliteLayer = L.tileLayer(
     }
 );
 
-export const map = L.map('map', {
+// Outdoor Map
+export const outdoorMap = L.map('outdoor-map', {
     center: [50.98720771879944, 12.973063896924302],
     zoom: 19,
     maxZoom: MAX_EDITOR_ZOOM,
     layers: [osmLayer]
 });
 
-// Layer Names in Switch Menu
-const baseMaps = {
+L.control.layers({
     "Map": osmLayer,
     "Satellite": satelliteLayer
-};
+}).addTo(outdoorMap);
 
-// Add Switch Button
-L.control.layers(baseMaps).addTo(map);
+// Indoor Map
+export const indoorMap = L.map('indoor-map', {
+    crs: L.CRS.Simple,
+    minZoom: -3,
+    maxZoom: 5,
+    zoomSnap: 0.25
+});
+
+// Get Active Map
+export function getActiveMap() {
+    return state.mode === "outdoor" ? outdoorMap : indoorMap;
+}

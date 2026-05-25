@@ -1,13 +1,17 @@
-import { state } from './state.js';
-import { map } from './map.js';
+import { state, getActiveGraph } from './state.js';
+import { getActiveMap } from './maps.js';
 import { hideInfoPanel, setMarkerEditMode } from './ui.js';
 
 // Tool switching
 export function setTool(tool) {
     state.currentTool = tool;
 
+    const graph = getActiveGraph();
+    const map = getActiveMap();
+
     map.dragging.enable();  // Enable map dragging upon tool switch
-    state.nodes.forEach(n => {    // Disable dragging upon tool switch
+
+    graph.nodes.forEach(n => {    // Disable dragging upon tool switch
         if (n.marker) n.marker.dragging.disable();
     });
 
@@ -26,7 +30,6 @@ export function setTool(tool) {
     } else if (tool === "edge") {
         map.getContainer().style.cursor = '';   // Cursor UI -> default
         setMarkerEditMode(false);   // leave Marker-Edit-Mode
-
     }
 
     document.querySelectorAll('#toolbar button').forEach(btn => btn.classList.remove('active'));    // UI -> Deactivate every button

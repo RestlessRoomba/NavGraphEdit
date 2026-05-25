@@ -1,5 +1,5 @@
-import { state } from './state.js';
-import { map } from './map.js';
+import { state, getActiveGraph } from './state.js';
+import { getActiveMap } from './maps.js';
 import { generateUUID } from './utils.js';
 import { handleEdgeCreation, updateConnectedEdges } from './edges.js';
 import { selectNode, showInfoPanel } from './ui.js';
@@ -10,36 +10,66 @@ const customIcon = L.divIcon({
     iconAnchor: [7, 7]
 });
 
-export function createNode(latlng, id = null) {
+// Create Node
+export function createNode(
+    position,
+    id = null,
+    tags = [],
+    graph = getActiveGraph(),
+    render = true
+) {
     const node = {
-        id: id ?? generateUUID(),   // Only if no UUID was passed
+        id: id ?? generateUUID(),   // Generate new UUID if none was passed
         type: "node",
-        lat: latlng.lat,
-        lng: latlng.lng,
-        tags: latlng.tags || [],
+        tags: tags ?? []    // Empty Tags if none were passed
     };
-    state.nodes.push(node)
-    console.log(state.nodes);
-    addNodeToMap(node);
+
+    if (position.lat !== undefined && position.lng !== undefined) {
+        node.lat = position.lat;
+        node.lng = position.lng;
+        
+    } else if (position.x !== undefined && position.y !== undefined) {
+        node.x = position.x;
+        node.y = position.y;
+
+    } else {
+        throw new Error("Invalid node position. Expected lat/lng or x/y.")
+    }
+
+    graph.nodes.push(node);
+
+    if (render) {
+        addNodeToMap(node);
+    }
+
+    state.dirty = true;
+
     return node;
 }
 
-function addNodeToMap(node) {
-    const marker = L.marker([node.lat, node.lng], {
+// Add Node to Map
+export function addNodeToMap(node) {
+    const map = getActiveMap();
+    const markerPosition = getMarkerPosition(node);
+
+    const marker = L.marker(markerPosition, {   // Place Marker on Map
         draggable: false,
         icon: customIcon
     }).addTo(map);
+
     node.marker = marker;
     
     setTimeout(() => {
     const el = marker.getElement();
+
     if (el && state.currentTool === "node") {
         el.classList.add('transparent');
         el.classList.add('no-click');
     }
     }, 0);
 
-    marker.on('click', function(e) { // Click on Marker
+    // Click on Marker
+    marker.on('click', function(e) {
         L.DomEvent.stopPropagation(e); // Click on marker != click on map
 
         if (state.currentTool === "select") { // Node selection
@@ -58,9 +88,43 @@ function addNodeToMap(node) {
         if (!state.ctrlPressed || state.currentTool !== "select") return;   // Only with ctrl down and in select tool
 
         const latlng = e.target.getLatLng();
-        node.lat = latlng.lat;
-        node.lng = latlng.lng;
+
+        if (isOutdoorNode(node)) {  // Outdoor
+            node.lat = latlng.lat;  // -> use Lat/Lng
+            node.lng = latlng.lng;
+        } else {                    // Indoor
+            node.x = latlng.lng;    // -> use X/Y
+            node.y = latlng.lat;
+        }
         updateConnectedEdges(node);
-        showInfoPanel(node);
+
+        if (state.selectedObject === node) {
+            showInfoPanel(node);
+        }
+
+        state.dirty = true;
     });
+}
+
+// Remove Node From Map
+export function removeNodeFromMap(node) {
+    const map = getActiveMap();
+
+    if (node.marker) {
+        map.removeLayer(node.marker);
+        node.marker = null;
+    }
+}
+
+// Get Marker Position
+export function getMarkerPosition(node) {
+    if (isOutdoorNode(node)) {
+        return [node.lat, node.lng];
+    }
+
+    return [node.y, node.x];
+}
+
+export function isOutdoorNode(node) {
+    return node.lat !== undefined && node.lng !== undefined;
 }

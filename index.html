@@ -11,9 +11,20 @@
 </head>
 <body>
 
-    <div id="map"></div>
+    <div id="outdoor-map"></div>
+    <div id="indoor-map" class="hidden"></div>
 
     <div id="toolbar">
+        <button id="mode-outdoor-btn">Outdoor</button>
+        <button id="mode-indoor-btn">Indoor</button>
+
+        <select id="building-select" class="hidden"></select>
+        <div id="floor-controls" class="hidden">
+            <button id="floor-prev-btn">Floor -</button>
+            <span id="active-floor-label">EG</span>
+            <button id="floor-next-btn">Floor +</button>
+        </div>
+
         <button id="tool-select">Select</button>
         <button id="tool-node">Node</button>
         <button id="tool-edge">Edge</button>

@@ -1,8 +1,9 @@
-import { state } from './state.js';
-import { map } from './map.js';
+import { state, getActiveGraph } from './state.js';
+import { getActiveMap } from './maps.js';
 import { exportGraph, importGraph } from './io.js';
 import { createEdge } from './edges.js';
 import { createNode } from './nodes.js';
+import { setMode } from './mode.js';
 
 // Node selection
 export function selectNode(node) {
@@ -19,8 +20,10 @@ export function selectEdge(edge) {
 }
 
 export function setMarkerEditMode(active) {    // activated by Shift-Key-Listener -> UI
-    state.nodes.forEach(node => {
-        const el = node.marker.getElement();
+    const graph = getActiveGraph();
+
+    graph.nodes.forEach(node => {
+        const el = node.marker?.getElement();
 
         if (!el) return;    // in case of no markers
 
@@ -50,10 +53,19 @@ export function showInfoPanel(obj) {
         title.textContent = "Node";
 
         // Write Names/Tags into the Panel
+        const positionHtml = obj.lat !== undefined && obj.lng !== undefined   //Decide between Indoor (X/Y) and Outdoor (Lat/Lng)
+            ? `
+                <div>Lat: ${obj.lat}</div>
+                <div>Lng: ${obj.lng}</div>
+            `
+            : `
+                <div>X: ${obj.x}</div>
+                <div>Y: ${obj.y}</div>
+            `;
+
         content.innerHTML = `
             <div>UUID: ${obj.id}</div>
-            <div>Lat: ${obj.lat}</div>
-            <div>Lng: ${obj.lng}</div>
+            ${positionHtml}
             <div id="node-tags-container" style="margin-top: 10px;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                     <b>Tags / Names</b>
@@ -82,6 +94,7 @@ export function showInfoPanel(obj) {
                 // updating the data
                 input.addEventListener("input", (e) => {
                     obj.tags[index] = e.target.value;
+                    state.dirty = true;
                 });
 
                 // creates Button for delete of tags
@@ -92,6 +105,7 @@ export function showInfoPanel(obj) {
                 // removes a tag from array
                 delBtn.addEventListener("click", () => {
                     obj.tags.splice(index, 1);
+                    state.dirty = true;
                     renderTags();
                 });
 
@@ -103,12 +117,13 @@ export function showInfoPanel(obj) {
 
         renderTags();
 
-        // creats add-Button  
+        // creates add-Button  
         const addBtn = document.getElementById("add-node-tag-btn");
         if (addBtn) {
             addBtn.addEventListener("click", () => {
                 if (!obj.tags) obj.tags = []; // if no Array -> create 
                 obj.tags.push("");
+                state.dirty = true;
                 renderTags();
             });
         }
@@ -142,7 +157,9 @@ export function showInfoPanel(obj) {
         const checkbox = document.getElementById("wheelchair-checkbox");
         checkbox.addEventListener("change", function() {
             obj.wheelchairAccessible = this.checked;
+            state.dirty = true;
             console.log("Wheelchair accessible: ", obj.wheelchairAccessible);
+
             if (obj.line) {
                 obj.line.setStyle({ color: obj.wheelchairAccessible ? 'blue' : 'red' });
             }
@@ -178,12 +195,16 @@ document.getElementById('delete-btn').onclick = function () {
 
 // Delete Node
 export function deleteNode(node) {
+    const graph = getActiveGraph();
+    const map = getActiveMap();
+
     if (node.marker) {
             map.removeLayer(node.marker); // Delete marker from map
+            node.marker = null;
         }
 
         // All connected Edges to the selected Node
-        const edgesToRemove = state.edges.filter(e => e.from === node.id || e.to === node.id);
+        const edgesToRemove = graph.edges.filter(e => e.from === node.id || e.to === node.id);
 
         // Delete connected Edges from map
         edgesToRemove.forEach(edge => {
@@ -191,35 +212,59 @@ export function deleteNode(node) {
         });
 
         // Delete Nodes from List
-        state.nodes = state.nodes.filter(n => n.id !== node.id);
+        graph.nodes = graph.nodes.filter(n => n.id !== node.id);
+
+        state.dirty = true;
 }
 
 // Delete Edge
 export function deleteEdge(edge) {
+    const graph = getActiveGraph();
+    const map = getActiveMap();
+
     if (edge.line) {
             map.removeLayer(edge.line);  // Delete Edge from map
+            edge.line = null;
         }
 
         // Delete Edge from List
-        state.edges = state.edges.filter(e => e.id !== edge.id);
+        graph.edges = graph.edges.filter(e => e.id !== edge.id);
+
+        state.dirty = true;
 }
 
 // Split Edge
 export function splitEdge(edge) {
+    const graph = getActiveGraph();
+
     // Find connected nodes of old edge
-    const nodeA = state.nodes.find(n => n.id === edge.from);
-    const nodeB = state.nodes.find(n => n.id === edge.to);
+    const nodeA = graph.nodes.find(n => n.id === edge.from);
+    const nodeB = graph.nodes.find(n => n.id === edge.to);
+
     if (!nodeA || !nodeB) return;   // Safety
 
-    // Calculate middle
-    const middleLat = (nodeA.lat + nodeB.lat) / 2;
-    const middleLng = (nodeA.lng + nodeB.lng) / 2;
+    let newNode;
 
-    // Create new node
-    const newNode = createNode({
-        lat: middleLat,
-        lng: middleLng
-    });
+    if (nodeA.lat !== undefined && nodeA.lng !== undefined) {
+        // Calculate middle
+        const middleLat = (nodeA.lat + nodeB.lat) / 2;
+        const middleLng = (nodeA.lng + nodeB.lng) / 2;
+
+        // Create new node
+        newNode = createNode({
+            lat: middleLat,
+            lng: middleLng
+        });
+
+    } else {
+        const middleX = (nodeA.x + nodeB.x) / 2;
+        const middleY = (nodeA.y + nodeB.y) / 2;
+
+        newNode = createNode({
+            x: middleX,
+            y: middleY
+        });
+    }
 
     // Delete the old edge
     deleteEdge(edge);   
@@ -240,6 +285,8 @@ export function splitEdge(edge) {
     );
 
     state.selectedObject = null;
+    state.edgeStartNode = null;
+    state.dirty = true;
     hideInfoPanel();
 }
 
@@ -259,6 +306,8 @@ document.getElementById('import-input').onchange = function(event) {
 
 // Version Input
 const versionInput = document.getElementById("graph-version-input");
+const incrementVersionButton = document.getElementById("increment-version-btn");
+const decrementVersionButton = document.getElementById("decrement-version-btn");
 
 versionInput.value = state.graphVersion;
 
@@ -266,33 +315,96 @@ versionInput.addEventListener("input", function() {
     const value = Number(versionInput.value);
 
     if (!Number.isInteger(value) || value < 1) {
-        versionInput.value = state.graphVersion;    // Set to working version
+        versionInput.value = state.graphVersion;
         return;
     }
-
-    state.graphVersion = value; // Set to version from json file
+    
+    state.graphVersion = value;
+    updateVersionInput();
 });
 
 // Update Version Input
 export function updateVersionInput() {
-    const versionInput = document.getElementById("graph-version-input");
-
     if (versionInput) {
         versionInput.value = state.graphVersion;
-        decrementVersionButton.disabled = state.graphVersion <= 1;  // Deactivate Decrement-Button if Version = 1
+    }
+
+    if (decrementVersionButton) {
+        decrementVersionButton.disabled = state.graphVersion <= 1;
     }
 }
 
 // Increment Version Button
-document.getElementById("increment-version-btn").onclick = function () {
+incrementVersionButton.onclick = function() {
     state.graphVersion += 1;
     updateVersionInput();
 };
 
 // Decrement Version Button
-document.getElementById("decrement-version-btn").onclick = function () {
+decrementVersionButton.onclick = function() {
     if (state.graphVersion <= 1) return;
 
     state.graphVersion -= 1;
     updateVersionInput();
+};
+
+// Mode Switching
+document.getElementById("mode-outdoor-btn").onclick = () => setMode("outdoor");
+document.getElementById("mode-indoor-btn").onclick = () => setMode("indoor");
+
+// Update Building Select -> Fill Building Drop Down Menu
+export function updateBuildingSelect() {
+    const select = document.getElementById("building-select");
+
+    if (!select) return;
+
+    select.innerHTML = "";
+
+    Object.entries(state.indoor.buildings).forEach(([buildingId, building]) => {
+        const option = document.createElement("option");
+
+        option.value = buildingId;
+        option.textContent = building.name ?? buildingId;
+
+        if (buildingId === state.indoor.activeBuildingId) {
+            option.selected = true;
+        }
+
+        select.appendChild(option);
+    });
+}
+
+// Process Building Select
+const buildingSelect = document.getElementById("building-select");
+
+buildingSelect.onchange = function(e) {
+    if (state.dirty) {
+        const shouldExport = confirm(
+            "There are unsaved changes. Export before switching building?"
+        );
+
+        if (shouldExport) {
+            exportGraph();
+        }
+    }
+
+    state.indoor.activeBuildingId = e.target.value;
+
+    const building =
+        state.indoor.buildings[state.indoor.activeBuildingId];
+
+    state.indoor.activeFloorId =
+        Object.keys(building.floors)[0];
+
+    const floorLabel =
+        document.getElementById("active-floor-label");
+
+    if (floorLabel) {
+        floorLabel.textContent = state.indoor.activeFloorId;
+    }
+
+    state.selectedObject = null;
+    state.edgeStartNode = null;
+
+    hideInfoPanel();
 };

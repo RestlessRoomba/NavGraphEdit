@@ -1,13 +1,16 @@
-import { map } from './map.js';
+import { getActiveMap, indoorMap, outdoorMap } from './maps.js';
 import { createNode } from './nodes.js';
 import { setTool } from './tools.js';
-import { state } from './state.js';
+import { state, getActiveGraph } from './state.js';
 
-map.on('click', function(e) {   // Click on Map
-    if (state.currentTool === "node") {   // Node tool?
-        createNode(e.latlng);
+function handleMapClick(e) {
+    if (state.currentTool === "node") {
+        createNode(e.latlng)
     }
-});
+}
+
+outdoorMap.on('click', handleMapClick);
+indoorMap.on('click', handleMapClick);
 
 // Key-listeners
 
@@ -39,8 +42,16 @@ document.addEventListener('keydown', function(e) {  // Control is down?
         state.ctrlPressed = true; // flip
 
         if (state.currentTool === "select") {
+            const graph = getActiveGraph();
+            const map = getActiveMap();
+
             map.getContainer().style.cursor = 'move';   // Cursor UI move
-            state.nodes.forEach(n => n.marker.dragging.enable()); // Enable dragging for each marker
+            graph.nodes.forEach(n => {
+                if (n.marker) {
+                    n.marker.dragging.enable(); // Enable dragging for each marker
+                }
+            });
+
             map.dragging.disable(); // Only drag markers, not the map
         }
     }
@@ -48,9 +59,17 @@ document.addEventListener('keydown', function(e) {  // Control is down?
 
 document.addEventListener('keyup', function(e) {    // Control is up?
     if (e.key === 'Control') {
+        const graph = getActiveGraph();
+        const map = getActiveMap();
+
         state.ctrlPressed = false;    // flip
         map.getContainer().style.cursor = '';   // Cursor UI default
-        state.nodes.forEach(n => n.marker.dragging.disable()); // Disable dragging for each marker
+        graph.nodes.forEach(n => {
+            if (n.marker) {
+                n.marker.dragging.disable(); // Disable dragging for each marker
+            }
+        });
+        
         map.dragging.enable();  // Map draggable again
     }
 });

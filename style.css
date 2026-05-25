@@ -5,7 +5,8 @@ html, body {
 }
 
 /* Default Map */
-#map {
+#outdoor-map,
+#indoor-map {
   height: 100%;
   cursor: default;
 }
