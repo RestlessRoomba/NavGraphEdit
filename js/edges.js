@@ -47,8 +47,6 @@ export function createEdge(
         addEdgeToMap(nodeA, nodeB, edge);
     }
 
-    state.dirty = true;
-
     return edge;
 }
 

@@ -2,11 +2,19 @@ import { getActiveMap, indoorMap, outdoorMap } from './maps.js';
 import { createNode } from './nodes.js';
 import { setTool } from './tools.js';
 import { state, getActiveGraph } from './state.js';
+import { isLatLngInsideActiveFloorplan } from './floorplans.js';
 
 function handleMapClick(e) {
-    if (state.currentTool === "node") {
-        createNode(e.latlng)
+    if (state.currentTool !== "node") return;
+
+    if (state.mode === "indoor") {
+        if (!isLatLngInsideActiveFloorplan(e.latlng)) {
+            console.log("Click outside floorplan. Node not created.");
+            return;
+        }
     }
+
+    createNode(e.latlng);
 }
 
 outdoorMap.on('click', handleMapClick);

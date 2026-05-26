@@ -2,9 +2,12 @@ import { state } from './state.js';
 import { indoorMap, outdoorMap } from './maps.js';
 import { hideInfoPanel, updateBuildingSelect } from './ui.js';
 import { loadFloorplanForActiveFloor } from './floorplans.js';
+import { renderActiveGraph, clearActiveGraphLayers } from './render.js';
 
 export function setMode(mode) {
     if (state.mode === mode) return;
+
+    clearActiveGraphLayers();
 
     state.mode = mode;
     state.selectedObject = null;
@@ -19,9 +22,18 @@ export function setMode(mode) {
 
     if (mode === "outdoor") {
         outdoorMap.invalidateSize();
+        renderActiveGraph();
+
     } else {
         updateBuildingSelect();
-        loadFloorplanForActiveFloor();
-        indoorMap.invalidateSize();
+
+        loadFloorplanForActiveFloor().then(() => {
+            indoorMap.invalidateSize();
+            renderActiveGraph();
+        }).catch(err => {
+            console.error("Floorplan could not be loaded: ", err);
+            indoorMap.invalidateSize();
+            renderActiveGraph();
+        });
     }
 }

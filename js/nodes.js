@@ -3,6 +3,7 @@ import { getActiveMap } from './maps.js';
 import { generateUUID } from './utils.js';
 import { handleEdgeCreation, updateConnectedEdges } from './edges.js';
 import { selectNode, showInfoPanel } from './ui.js';
+import { isLatLngInsideActiveFloorplan } from './floorplans.js';
 
 const customIcon = L.divIcon({
     className: 'custom-node-marker',
@@ -24,13 +25,17 @@ export function createNode(
         tags: tags ?? []    // Empty Tags if none were passed
     };
 
-    if (position.lat !== undefined && position.lng !== undefined) {
-        node.lat = position.lat;
-        node.lng = position.lng;
-        
-    } else if (position.x !== undefined && position.y !== undefined) {
+    if (position.x !== undefined && position.y !== undefined) {
         node.x = position.x;
         node.y = position.y;
+        
+    } else if (state.mode === "indoor" && position.lat !== undefined && position.lng !== undefined) {
+        node.x = position.lng;
+        node.y = position.lat;
+
+    } else if (position.lat !== undefined && position.lng !== undefined) {
+        node.lat = position.lat;
+        node.lng = position.lng;
 
     } else {
         throw new Error("Invalid node position. Expected lat/lng or x/y.")
@@ -41,8 +46,6 @@ export function createNode(
     if (render) {
         addNodeToMap(node);
     }
-
-    state.dirty = true;
 
     return node;
 }
@@ -89,6 +92,14 @@ export function addNodeToMap(node) {
 
         const latlng = e.target.getLatLng();
 
+        if (state.mode === "indoor") {
+            if (!isLatLngInsideActiveFloorplan(latlng)) {
+                marker.setLatLng(getMarkerPosition(node));
+                console.log("Target out of bounds. Node not moved.");
+                return;
+            }
+        }
+
         if (isOutdoorNode(node)) {  // Outdoor
             node.lat = latlng.lat;  // -> use Lat/Lng
             node.lng = latlng.lng;
@@ -101,8 +112,6 @@ export function addNodeToMap(node) {
         if (state.selectedObject === node) {
             showInfoPanel(node);
         }
-
-        state.dirty = true;
     });
 }
 

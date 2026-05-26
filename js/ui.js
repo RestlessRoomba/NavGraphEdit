@@ -4,6 +4,8 @@ import { exportGraph, importGraph } from './io.js';
 import { createEdge } from './edges.js';
 import { createNode } from './nodes.js';
 import { setMode } from './mode.js';
+import { loadFloorplanForActiveFloor } from './floorplans.js';
+import { renderActiveGraph, clearActiveGraphLayers } from './render.js';
 
 // Node selection
 export function selectNode(node) {
@@ -94,7 +96,6 @@ export function showInfoPanel(obj) {
                 // updating the data
                 input.addEventListener("input", (e) => {
                     obj.tags[index] = e.target.value;
-                    state.dirty = true;
                 });
 
                 // creates Button for delete of tags
@@ -105,7 +106,6 @@ export function showInfoPanel(obj) {
                 // removes a tag from array
                 delBtn.addEventListener("click", () => {
                     obj.tags.splice(index, 1);
-                    state.dirty = true;
                     renderTags();
                 });
 
@@ -123,7 +123,6 @@ export function showInfoPanel(obj) {
             addBtn.addEventListener("click", () => {
                 if (!obj.tags) obj.tags = []; // if no Array -> create 
                 obj.tags.push("");
-                state.dirty = true;
                 renderTags();
             });
         }
@@ -157,7 +156,6 @@ export function showInfoPanel(obj) {
         const checkbox = document.getElementById("wheelchair-checkbox");
         checkbox.addEventListener("change", function() {
             obj.wheelchairAccessible = this.checked;
-            state.dirty = true;
             console.log("Wheelchair accessible: ", obj.wheelchairAccessible);
 
             if (obj.line) {
@@ -213,8 +211,6 @@ export function deleteNode(node) {
 
         // Delete Nodes from List
         graph.nodes = graph.nodes.filter(n => n.id !== node.id);
-
-        state.dirty = true;
 }
 
 // Delete Edge
@@ -229,8 +225,6 @@ export function deleteEdge(edge) {
 
         // Delete Edge from List
         graph.edges = graph.edges.filter(e => e.id !== edge.id);
-
-        state.dirty = true;
 }
 
 // Split Edge
@@ -286,7 +280,6 @@ export function splitEdge(edge) {
 
     state.selectedObject = null;
     state.edgeStartNode = null;
-    state.dirty = true;
     hideInfoPanel();
 }
 
@@ -374,37 +367,97 @@ export function updateBuildingSelect() {
     });
 }
 
-// Process Building Select
-const buildingSelect = document.getElementById("building-select");
+// Get Active Building
+function getActiveBuilding() {
+    return state.indoor.buildings[state.indoor.activeBuildingId];
+}
 
-buildingSelect.onchange = function(e) {
-    if (state.dirty) {
-        const shouldExport = confirm(
-            "There are unsaved changes. Export before switching building?"
-        );
+function getSortedFloorIds(building) {
+    return Object.keys(building.floors).sort((a, b) => {
+        const numA = Number(a);
+        const numB = Number(b);
 
-        if (shouldExport) {
-            exportGraph();
+        if (!Number.isNaN(numA) && !Number.isNaN(numB)) {
+            return numA - numB;
         }
+
+        return a.localeCompare(b);
+    });
+}
+
+function updateFloorLabel() {
+    const label = document.getElementById("active-floor-label");
+
+    if (label) {
+        label.textContent = state.indoor.activeFloorId;
     }
+}
 
-    state.indoor.activeBuildingId = e.target.value;
-
-    const building =
-        state.indoor.buildings[state.indoor.activeBuildingId];
-
-    state.indoor.activeFloorId =
-        Object.keys(building.floors)[0];
-
-    const floorLabel =
-        document.getElementById("active-floor-label");
-
-    if (floorLabel) {
-        floorLabel.textContent = state.indoor.activeFloorId;
-    }
+// Building Switching -> Update Floorplan and load Content
+async function reloadActiveIndoorView() {
+    hideInfoPanel();
 
     state.selectedObject = null;
     state.edgeStartNode = null;
 
-    hideInfoPanel();
+    updateBuildingSelect();
+    updateFloorLabel();
+
+    try {
+        await loadFloorplanForActiveFloor();
+    } catch (err) {
+        console.error("Floorplan could not be loaded: ", err);
+    }
+
+    renderActiveGraph();
+}
+
+// Process Building Select
+const buildingSelect = document.getElementById("building-select");
+
+buildingSelect.onchange = async function(e) {
+    if (state.mode !== "indoor") return;
+
+    clearActiveGraphLayers();
+
+    state.indoor.activeBuildingId = e.target.value;
+
+    const building = getActiveBuilding();
+    const floorIds = getSortedFloorIds(building);
+
+    state.indoor.activeFloorId = floorIds.includes("+00") ? "+00" : floorIds[0];    // Always load +00 as default (or next known floor)
+
+    await reloadActiveIndoorView();
+};
+
+// Floor Switching Buttons
+async function switchFloor(direction) {
+    if (state.mode !== "indoor") return;
+
+    const building = getActiveBuilding();
+    const floorIds = getSortedFloorIds(building);
+
+    const currentIndex = floorIds.indexOf(state.indoor.activeFloorId);
+
+    if (currentIndex === -1) return;
+
+    const nextIndex = currentIndex + direction;
+
+    if (nextIndex < 0 || nextIndex >= floorIds.length) {
+        return;
+    }
+
+    clearActiveGraphLayers();
+
+    state.indoor.activeFloorId = floorIds[nextIndex];
+
+    await reloadActiveIndoorView();
+}
+
+document.getElementById("floor-prev-btn").onclick = function() {
+    switchFloor(-1);
+};
+
+document.getElementById("floor-next-btn").onclick = function() {
+    switchFloor(1);
 };

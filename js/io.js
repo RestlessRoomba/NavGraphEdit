@@ -1,9 +1,9 @@
-import { state, getActiveGraph } from './state.js';
-import { outdoorMap, indoorMap } from './maps.js';
-import { createNode, removeNodeFromMap } from './nodes.js';
-import { createEdge, removeEdgeFromMap } from './edges.js';
+import { state, createDefaultIndoorState, mergeIndoorDefaults } from './state.js';
+import { createNode } from './nodes.js';
+import { createEdge } from './edges.js';
 import { updateVersionInput, hideInfoPanel } from './ui.js';
-import { renderActiveGraph } from './render.js';
+import { renderActiveGraph, clearAllRenderedLayers } from './render.js';
+import { loadFloorplanForActiveFloor } from './floorplans.js';
 
 // Export
 export function exportGraph() {
@@ -39,7 +39,6 @@ export function exportGraph() {
     link.click();   // Simulate user click
     link.remove();  // Remove temp link from document body
     URL.revokeObjectURL(url);   // Free storage
-    state.dirty = false;
     console.log("Exported.");
 };
 
@@ -69,11 +68,23 @@ export function importGraph(file) {
 
             state.selectedObject = null;
             state.edgeStartNode = null;
-            state.dirty = false;
 
             hideInfoPanel();
-            renderActiveGraph();
-            console.log("Loaded.");
+
+            // Load active Floorplan (async)
+            if (state.mode === "indoor") {
+                loadFloorplanForActiveFloor().then(() => {
+                    renderActiveGraph();
+                    console.log("Loaded.");
+                }).catch(err => {
+                    console.error("Floorplan could not be loaded: ", err);
+                    renderActiveGraph();
+                    console.log("Loaded without floorplan.");
+                });
+            } else {
+                renderActiveGraph();
+                console.log("Loaded.");
+            }
 
         } catch(err) {
 
@@ -92,8 +103,6 @@ function importNewFormat(importedData) {
         edges: []
     };
 
-    state.indoor = importedData.indoor ?? createDefaultIndoorState();
-
     if (importedData.outdoor) {
         deserializeGraphInto(
             importedData.outdoor,
@@ -101,42 +110,55 @@ function importNewFormat(importedData) {
         );
     }
 
-    if (importedData.indoor?.buildings) {
-        state.indoor.buildings = {}
+    // Merge imported Indoor Data with existing Indoor Data
+    const mergedIndoor = mergeIndoorDefaults(importedData.indoor);
 
-        Object.entries(importedData.indoor.buildings).forEach(([buildingId, buildingData]) => { // Register Buildings in state
-            state.indoor.buildings[buildingId] = {
-                name: buildingData.name ?? buildingId,
-                floors: {}
+    state.indoor = {
+        activeBuildingId: mergedIndoor.activeBuildingId,
+        activeFloorId: mergedIndoor.activeFloorId,
+        buildings: {}
+    };
+
+    Object.entries(mergedIndoor.buildings ?? {}).forEach(([buildingId, buildingData]) => {
+
+        state.indoor.buildings[buildingId] = {
+            name: buildingData.name ?? buildingId,
+            floors: {}
+        };
+
+        Object.entries(buildingData.floors ?? {}).forEach(([floorId, floorData]) => {
+
+            const floorGraph = {
+                floorplan: floorData.floorplan ?? null,
+                nodes: [],
+                edges: []
             };
 
-            Object.entries(buildingData.floors ?? {}).forEach(([floorId, floorData]) => {   // Register Floors of each Building in state
-                const floorGraph = {
-                    floorplan: floorData.floorplan ?? null,
-                    nodes: [],
-                    edges: []
-                };
+            deserializeGraphInto(
+                floorData,
+                floorGraph
+            );
 
-                deserializeGraphInto(
-                    floorData,
-                    floorGraph
-                );
-
-                state.indoor.buildings[buildingId].floors[floorId] = floorGraph;
-            });
+            state.indoor.buildings[buildingId].floors[floorId] = floorGraph;
         });
+    });
 
-        state.indoor.activeBuildingId = importedData.indoor.activeBuildingId ?? Object.keys(state.indoor.buildings)[0];
+    // Safety: activeBuildingId is invalid
+    if (!state.indoor.buildings[state.indoor.activeBuildingId]) {
+        state.indoor.activeBuildingId = Object.keys(state.indoor.buildings)[0];
+    }
 
-        const activeBuilding = state.indoor.buildings[state.indoor.activeBuildingId];
+    // Safety: activeFloorId is invalid
+    const activeBuilding = state.indoor.buildings[state.indoor.activeBuildingId];
 
-        state.indoor.activeFloorId = importedData.indoor.activeFloorId ?? Object.keys(activeBuilding.floors)[0];
+    if (activeBuilding && !activeBuilding.floors[state.indoor.activeFloorId]) {
+        state.indoor.activeFloorId = Object.keys(activeBuilding.floors)[0];
     }
 }
 
 // Old Outdoor-Only-Format (V1)
 function importLegacyOutdoorFormat(importedData) {
-    state.schemaVersion = 1;
+    state.schemaVersion = 2;    // Gets updatet automatically
     state.graphVersion = importedData.metadata?.graphVersion ?? 1;
 
     state.outdoor = {
@@ -274,76 +296,4 @@ function serializeIndoorBuildings() {
         });
 
     return result;
-}
-
-export function clearActiveGraphLayers() {
-    const graph = getActiveGraph();
-
-    graph.nodes.forEach(node => {
-        removeNodeFromMap(node);
-    });
-
-    graph.edges.forEach(edge => {
-        removeEdgeFromMap(edge);
-    });
-}
-
-function clearAllRenderedLayers() {
-    clearGraphLayers(state.outdoor);
-
-    Object.values(state.indoor.buildings ?? {}).forEach(building => {
-        Object.values(building.floors ?? {}).forEach(floor => {
-            clearGraphLayers(floor);
-        });
-    });
-}
-
-function clearGraphLayers(graph) {
-    graph.nodes?.forEach(node => {
-        if (node.marker) {
-            try {
-                outdoorMap.removeLayer(node.marker);
-            } catch (e) {}
-
-            try {
-                indoorMap.removeLayer(node.marker);
-            } catch (e) {}
-
-            node.marker = null;
-        }
-    });
-
-    graph.edges?.forEach(edge => {
-        if (edge.line) {
-            try {
-                outdoorMap.removeLayer(edge.line);
-            } catch (e) {}
-
-            try {
-                indoorMap.removeLayer(edge.line);
-            } catch (e) {}
-
-            edge.line = null;
-        }
-    });
-}
-
-// Default Indoor State
-function createDefaultIndoorState() {
-    return {
-        activeBuildingId: "haus-1",
-        activeFloorId: "EG",
-        buildings: {
-            "haus-1": {
-                name: "Haus 1",
-                floors: {
-                    "EG": {
-                        floorplan: null,
-                        nodes: [],
-                        edges: []
-                    }
-                }
-            }
-        }
-    };
 }

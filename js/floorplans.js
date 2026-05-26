@@ -50,3 +50,38 @@ function getImageSize(imageRef) {
         img.src = imageRef;
     });
 }
+
+export function getActiveFloorplanBounds() {
+    const building = state.indoor.buildings[state.indoor.activeBuildingId];
+
+    if (!building) return null;
+
+    const floor = building.floors[state.indoor.activeFloorId];
+
+    if (!floor) return null;
+
+    return floor.floorplan?.bounds ?? null;
+}
+
+// Check if Position is inside Image Bounds
+export function isLatLngInsideActiveFloorplan(latlng) {
+    const bounds = getActiveFloorplanBounds();
+
+    if (!bounds) return false;
+
+    const minY = bounds[0][0];
+    const minX = bounds[0][1];
+
+    const maxY = bounds[1][0];
+    const maxX = bounds[1][1];
+
+    const x = latlng.lng;
+    const y = latlng.lat;
+
+    return (
+        x >= minX &&
+        x <= maxX &&
+        y >= minY &&
+        y <= maxY
+    );
+}

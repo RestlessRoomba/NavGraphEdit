@@ -140,3 +140,31 @@ html, body {
 .hidden {
   display: none;
 }
+
+/* Floor Control Buttons */
+#floor-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  background: white;
+  border-radius: 4px;
+  padding: 0 6px;
+}
+
+#floor-controls.hidden {
+  display: none !important;
+}
+
+#active-floor-label {
+  display: inline-block;
+  min-width: 4ch;
+  text-align: center;
+  font-family: inherit;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hidden {
+  display: none !important;
+}
