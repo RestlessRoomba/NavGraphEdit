@@ -2,94 +2,20 @@
 // Default Indoor State
 export function createDefaultIndoorState() {
     return {
-        activeBuildingId: "haus-1",
+        activeBuildingId: "haus-6",   // ← исправлено
         activeFloorId: "+00",
 
         buildings: {
-            "haus-1": {
-                name: "Haus 1",
-                floors: {
-                    "-01": {
-                        floorplan: {
-                            imageRef: "floorplans/haus-1/-01.png"
-                        },
-                        nodes: [],
-                        edges: []
-                    },
-
-                    "+00": {
-                        floorplan: {
-                            imageRef: "floorplans/haus-1/+00.png"
-                        },
-                        nodes: [],
-                        edges: []
-                    },
-
-                    "+01": {
-                        floorplan: {
-                            imageRef: "floorplans/haus-1/+01.png"
-                        },
-                        nodes: [],
-                        edges: []
-                    },
-
-                    "+02": {
-                        floorplan: {
-                            imageRef: "floorplans/haus-1/+02.png"
-                        },
-                        nodes: [],
-                        edges: []
-                    },
-                },
-            },
-
-            "haus-2": {
-                name: "Haus 2",
+            "haus-6": {
+                name: "Haus 6",
                 floors: {
                     "+00": {
                         floorplan: {
-                            imageRef: "floorplans/haus-2/+00.png"
+                            imageRef: "floorplans/haus-6/+00.png"
                         },
                         nodes: [],
                         edges: []
-                    },
-
-                    "+01": {
-                        floorplan: {
-                            imageRef: "floorplans/haus-2/+01.png"
-                        },
-                        nodes: [],
-                        edges: []
-                    },
-                }
-            },
-            
-            "haus-8": {
-                name: "Haus 8",
-                floors: {
-                    "-01": {
-                        floorplan: {
-                            imageRef: "floorplans/haus-8/-01.png"
-                        },
-                        nodes: [],
-                        edges: []
-                    },
-
-                    "+00": {
-                        floorplan: {
-                            imageRef: "floorplans/haus-8/+00.png"
-                        },
-                        nodes: [],
-                        edges: []
-                    },
-
-                    "+01": {
-                        floorplan: {
-                            imageRef: "floorplans/haus-8/+01.png"
-                        },
-                        nodes: [],
-                        edges: []
-                    },
+                    }
                 }
             },
         }
@@ -112,7 +38,7 @@ export const state = {
 
     outdoor: {
         nodes: [],
-        edges:[]
+        edges: []
     },
 
     indoor: createDefaultIndoorState()
@@ -157,7 +83,6 @@ export function mergeIndoorDefaults(importedIndoor) {
         const importedBuilding = importedIndoor.buildings[buildingId];
 
         importedBuilding.name = importedBuilding.name ?? defaultBuilding.name;
-
         importedBuilding.floors = importedBuilding.floors ?? {};
 
         for (const [floorId, defaultFloor] of Object.entries(defaultBuilding.floors)) {
@@ -168,22 +93,17 @@ export function mergeIndoorDefaults(importedIndoor) {
 
             const importedFloor = importedBuilding.floors[floorId];
 
-            // Merge via Object-Spread
             importedFloor.floorplan = {
                 ...(defaultFloor.floorplan ?? {}),
                 ...(importedFloor.floorplan ?? {})
-            }
+            };
 
-            // If existent, import Nodes and Edges, otherwise create empty
             importedFloor.nodes = importedFloor.nodes ?? [];
-
             importedFloor.edges = importedFloor.edges ?? [];
         }
     }
 
-    // Import active Building and Floor if existent or set to default
     importedIndoor.activeBuildingId = importedIndoor.activeBuildingId ?? defaults.activeBuildingId;
-
     importedIndoor.activeFloorId = importedIndoor.activeFloorId ?? defaults.activeFloorId;
 
     return importedIndoor;
