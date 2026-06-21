@@ -39,7 +39,7 @@ export function setTool(tool) {
         setMarkerEditMode(false);   // leave Marker-Edit-Mode
     }
 
-    document.querySelectorAll('#toolbar button').forEach(btn => btn.classList.remove('active'));    // UI -> Deactivate every button
+    document.querySelectorAll('#tool-select, #tool-node, #tool-edge').forEach(btn => btn.classList.remove('active'));    // UI -> Deactivate every button
     document.getElementById(`tool-${tool}`).classList.add('active');    // UI -> Activate current tool
     console.log("Tool switched to: ", tool);
 }

@@ -623,7 +623,7 @@ export function renderPortalEdgesList() {
 
         // Details (foldable)
         const details = document.createElement("div");
-        details.style.display = "none";
+        details.classList.add("hidden");
         details.style.marginTop = "8px";
         details.style.padding = "8px";
         details.style.backgroundColor = "#f9f9f9";
@@ -665,8 +665,7 @@ export function renderPortalEdgesList() {
 
         // Fold-Out-Toggle
         header.addEventListener("click", () => {
-            const isHidden = details.style.display === "none";
-            details.style.display = isHidden ? "#eaeaea" : "transparent";
+            details.classList.toggle("hidden");
         });
 
         itemElement.appendChild(details);
@@ -680,10 +679,9 @@ document.getElementById("toggle-portals-menu-btn").onclick = function() {
 
     const isHidden = container.classList.toggle("hidden");
 
+    this.classList.toggle("active", !isHidden);
+
     if (!isHidden) {
-        this.style.backgroundColor = "#4A90E2";
         renderPortalEdgesList();
-    } else {
-        this.style.backgroundColor = "#ffffff"
     }
 };

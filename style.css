@@ -208,3 +208,28 @@ html, body {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+#portal-edges-container {
+  position: absolute;
+  top: 70px;
+  right: 10px;
+  z-index: 1000;
+
+  width: 300px;
+
+  background: white;
+  padding: 10px;
+  border-radius: 6px;
+
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+#portal-edges-container h3 {
+  margin: 0 0 8px 0;
+  font-size: 15px;
+}
+
+#portal-edges-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
