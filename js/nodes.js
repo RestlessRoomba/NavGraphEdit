@@ -11,6 +11,23 @@ const customIcon = L.divIcon({
     iconAnchor: [7, 7]
 });
 
+// Check if Node has Non-Empty Tags
+export function nodeHasNonEmptyTags(node) {
+    return Array.isArray(node.tags) && node.tags.some(tag => typeof tag === 'string' && tag.trim().length > 0);
+}
+
+// Update Color of Node with Non-Empty Tag 
+export function updateNodeMarkerColor(node) {
+    const markerElement = node.marker?.getElement();
+    if (!markerElement) return;
+
+    if (nodeHasNonEmptyTags(node)) {
+        markerElement.classList.add('node-has-tags');
+    } else {
+        markerElement.classList.remove('node-has-tags');
+    }
+}
+
 // Create Node
 export function createNode(
     position,
@@ -63,12 +80,14 @@ export function addNodeToMap(node) {
     node.marker = marker;
     
     setTimeout(() => {
-    const el = marker.getElement();
+        const el = marker.getElement();
 
-    if (el && state.currentTool === "node") {
-        el.classList.add('transparent');
-        el.classList.add('no-click');
-    }
+        if (el && state.currentTool === "node") {
+            el.classList.add('transparent');
+            el.classList.add('no-click');
+        }
+
+        updateNodeMarkerColor(node);
     }, 0);
 
     // Click on Marker

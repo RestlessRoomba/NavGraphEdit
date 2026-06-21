@@ -24,7 +24,8 @@ export const outdoorMap = L.map('outdoor-map', {
     center: [50.98720771879944, 12.973063896924302],
     zoom: 19,
     maxZoom: MAX_EDITOR_ZOOM,
-    layers: [osmLayer]
+    layers: [osmLayer],
+    preferCanvas: true
 });
 
 L.control.layers({
@@ -37,7 +38,8 @@ export const indoorMap = L.map('indoor-map', {
     crs: L.CRS.Simple,
     minZoom: -3,
     maxZoom: 5,
-    zoomSnap: 0.25
+    zoomSnap: 0.25,
+    preferCanvas: true
 });
 
 // Get Active Map

@@ -38,8 +38,21 @@
 
         <button id="decrement-version-btn">-1</button>
         <button id="increment-version-btn">+1</button>
+
+        <button id="toggle-portals-menu-btn" style="margin-left: auto; background-color: #4A90E2; color: white;">Portal Edge Menu</button>
         
         <input type="file" id="import-input" style="display:none" accept=".json">
+    </div>
+
+    <div id="portal-edge-banner" class="hidden">
+        <span>Portal Edge: Select second Node</span>
+        <button id="portal-edge-cancel-btn">Cancel (Esc)</button>
+    </div>
+
+    <div id="portal-edges-container" class="hidden" style="margin-top: 20px; padding: 10px; border-top: 2px solid #ccc;">
+        <h3>Existing Portal Edges</h3>
+        <div id="portal-edges-list" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 5px; background: #fff;">
+            </div>
     </div>
 
     <div id="info-panel" class="hidden">

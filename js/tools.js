@@ -1,6 +1,7 @@
 import { state, getActiveGraph } from './state.js';
 import { getActiveMap } from './maps.js';
-import { hideInfoPanel, setMarkerEditMode } from './ui.js';
+import { hideInfoPanel, setMarkerEditMode, updatePortalEdgeBanner } from './ui.js';
+import { cancelPortalEdgeCreation } from './portals.js';
 
 // Tool switching
 export function setTool(tool) {
@@ -17,6 +18,12 @@ export function setTool(tool) {
 
     state.edgeStartNode = null;
     state.selectedObject = null;
+
+    if (state.portalEdgeStartNode !== null) {
+        cancelPortalEdgeCreation();
+        updatePortalEdgeBanner();
+    }
+
     hideInfoPanel();
 
     if (tool === "select") {

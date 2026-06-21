@@ -1,7 +1,7 @@
 import { state, createDefaultIndoorState, mergeIndoorDefaults } from './state.js';
 import { createNode } from './nodes.js';
 import { createEdge } from './edges.js';
-import { updateVersionInput, hideInfoPanel } from './ui.js';
+import { updateVersionInput, hideInfoPanel, renderPortalEdgesList } from './ui.js';
 import { renderActiveGraph, clearAllRenderedLayers } from './render.js';
 import { loadFloorplanForActiveFloor } from './floorplans.js';
 
@@ -70,6 +70,7 @@ export function importGraph(file) {
             state.edgeStartNode = null;
 
             hideInfoPanel();
+            renderPortalEdgesList();
 
             // Load active Floorplan (async)
             if (state.mode === "indoor") {

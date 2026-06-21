@@ -63,6 +63,19 @@ export function createDefaultIndoorState() {
                     },
                 }
             },
+
+            "haus-6": {
+                name: "Haus 6",
+                floors: {
+                    "+00": {
+                        floorplan: {
+                            imageRef: "floorplans/haus-6/+00.png"
+                        },
+                        nodes: [],
+                        edges: []
+                    },
+                }
+            },
             
             "haus-8": {
                 name: "Haus 8",
@@ -106,17 +119,48 @@ export const state = {
     selectedObject: null,
     edgeStartNode: null,
 
+    portalEdgeStartNode: null,
+    portalEdges: [],
+
     shiftPressed: false,
     ctrlPressed: false,
     lastTool: "select",
 
-    outdoor: {
-        nodes: [],
-        edges:[]
-    },
-
+    outdoor: { nodes: [], edges:[] },
     indoor: createDefaultIndoorState()
 };
+
+// Find Node in any Graph
+export function findNodeLocation(nodeId) {
+    const outdoorNode = state.outdoor.nodes.find(n => n.id === nodeId);
+
+    // Outdoor Node
+    if (outdoorNode) {
+        return {
+            node: outdoorNode,
+            graph: state.outdoor,
+            location: { type: "outdoor" }
+        };
+    }
+
+    // Indoor Node
+    for (const [buildingId, building] of Object.entries(state.indoor.buildings)) {
+        for (const [floorId, floor] of Object.entries(building.floors)) {
+            const node = floor.nodes.find(n => n.id === nodeId);
+
+            if (node) {
+                return {
+                    node,
+                    graph: floor,
+                    location: { type: "indoor", buildingId, floorId }
+                };
+            }
+        }
+    }
+
+    // Node not found
+    return null;
+}
 
 export function getActiveGraph() {
     if (state.mode === "outdoor") {

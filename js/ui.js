@@ -2,10 +2,17 @@ import { state, getActiveGraph } from './state.js';
 import { getActiveMap } from './maps.js';
 import { exportGraph, importGraph } from './io.js';
 import { createEdge } from './edges.js';
-import { createNode } from './nodes.js';
+import { createNode, updateNodeMarkerColor } from './nodes.js';
 import { setMode } from './mode.js';
 import { loadFloorplanForActiveFloor } from './floorplans.js';
 import { renderActiveGraph, clearActiveGraphLayers } from './render.js';
+import { 
+    handlePortalEdgeNodeClick,
+    cancelPortalEdgeCreation,
+    removePortalEdgesForNode,
+    deletePortalEdge,
+    getPortalEdgeDisplayLabel
+} from './portals.js';
 
 // Node selection
 export function selectNode(node) {
@@ -39,6 +46,20 @@ export function setMarkerEditMode(active) {    // activated by Shift-Key-Listene
     });
 }
 
+// Portal Edge Error Helper
+function getPortalEdgeFailureMessage(reason) {
+    switch (reason) {
+        case "same-graph":
+            return "Both nodes are in the same graph. Use a normal Edge.";
+        case "duplicate":
+            return "This connection already exists.";
+        case "node-not-found":
+            return "Node not found.";
+        default:
+            return "Connection not possible.";
+    }
+}
+
 // Info Panel
 
 // Show Info Panel
@@ -64,7 +85,8 @@ export function showInfoPanel(obj) {
                 <div>X: ${obj.x}</div>
                 <div>Y: ${obj.y}</div>
             `;
-
+            
+            
         content.innerHTML = `
             <div>UUID: ${obj.id}</div>
             ${positionHtml}
@@ -74,6 +96,10 @@ export function showInfoPanel(obj) {
                     <button id="add-node-tag-btn" style="padding: 2px 6px;">+</button>
                 </div>
                 <div id="node-tags-list"></div>
+            </div>
+            <div id="portal-edge-section" style="margin-top: 10px;">
+                <button id="portal-edge-action-btn" style="width: 100%; padding: 4px 6px;"></button>
+                <div id="portal-edge-feedback" style="margin-top: 6px; font-size: 13px;"></div>
             </div>
         `;
 
@@ -96,17 +122,19 @@ export function showInfoPanel(obj) {
                 // updating the data
                 input.addEventListener("input", (e) => {
                     obj.tags[index] = e.target.value;
+                    updateNodeMarkerColor(obj);
                 });
 
-                // creates Button for delete of tags
+                // Creates Tag-Removal-Button
                 const delBtn = document.createElement("button");
                 delBtn.textContent = "-";
                 delBtn.style.marginLeft = "5px";
                 delBtn.style.padding = "2px 6px";
-                // removes a tag from array
+                // Removes a Tag from Array
                 delBtn.addEventListener("click", () => {
                     obj.tags.splice(index, 1);
                     renderTags();
+                    updateNodeMarkerColor(obj);
                 });
 
                 row.appendChild(input);
@@ -124,8 +152,63 @@ export function showInfoPanel(obj) {
                 if (!obj.tags) obj.tags = []; // if no Array -> create 
                 obj.tags.push("");
                 renderTags();
+                updateNodeMarkerColor(obj);
             });
         }
+
+        // Portal Edge Section
+        const feedback = document.getElementById("portal-edge-feedback");
+        feedback.textContent = ""; // Reset
+
+        const renderPortalEdgeButton = () => {
+            const btn = document.getElementById("portal-edge-action-btn");
+            if (!btn) return;
+
+            if (state.portalEdgeStartNode === null) {
+                btn.textContent = "Start Portal Edge Here";
+                btn.disabled = false;
+
+                btn.onclick = () => {
+                    handlePortalEdgeNodeClick(obj);
+                    updatePortalEdgeBanner();
+                    renderPortalEdgeButton();
+                };
+
+            } else if (state.portalEdgeStartNode.id === obj.id) {
+                btn.textContent = "Select another node...";
+                btn.disabled = true;
+                btn.onclick = null;
+
+            } else {
+                btn.textContent = "Connect Portal Edge Here";
+                btn.disabled = false;
+
+                btn.onclick = () => {
+                    const result = handlePortalEdgeNodeClick(obj);
+
+                    if (result?.success) {
+                        feedback.textContent = "Portal Edge created.";
+                        feedback.style.color = "green";
+                        
+                        // Render Portal Edge Menu if visible
+                        const container = document.getElementById("portal-edges-container");
+                        if (container && !container.classList.contains("hidden")) {
+                            renderPortalEdgesList();
+                        }
+
+                    } else if (result && !result.success) {
+                        feedback.textContent = getPortalEdgeFailureMessage(result.reason);
+                        feedback.style.color = "#a33";
+                    }
+
+                    updatePortalEdgeBanner();
+                    renderPortalEdgeButton();
+                    renderPortalEdgesList();
+                };
+            }
+        };
+
+        renderPortalEdgeButton();
     }
 
     if (obj.type === "edge") {  // For Edges
@@ -208,6 +291,16 @@ export function deleteNode(node) {
         edgesToRemove.forEach(edge => {
             deleteEdge(edge);
         });
+
+        // Delete connected Portal Edges
+        removePortalEdgesForNode(node.id);
+        renderPortalEdgesList();
+
+        // Node is Portal Edge Start Node
+        if (state.portalEdgeStartNode?.id === node.id) {
+            state.portalEdgeStartNode = null;
+            updatePortalEdgeBanner();
+        }
 
         // Delete Nodes from List
         graph.nodes = graph.nodes.filter(n => n.id !== node.id);
@@ -460,4 +553,137 @@ document.getElementById("floor-prev-btn").onclick = function() {
 
 document.getElementById("floor-next-btn").onclick = function() {
     switchFloor(1);
+};
+
+// Portal Edge Section
+export function updatePortalEdgeBanner() {
+    const banner = document.getElementById("portal-edge-banner");
+    if (!banner) return;
+
+    banner.classList.toggle("hidden", state.portalEdgeStartNode === null);
+}
+
+document.getElementById("portal-edge-cancel-btn").onclick = function() {
+    cancelPortalEdgeCreation();
+    updatePortalEdgeBanner();
+
+    if (state.selectedObject?.type === "node") {
+        showInfoPanel(state.selectedObject);
+    }
+};
+
+// Existing Portal Edges Menu
+export function renderPortalEdgesList() {
+    const listContainer = document.getElementById("portal-edges-list");
+    if (!listContainer) return;
+
+    listContainer.innerHTML = ""; // Empty
+
+    if (!state.portalEdges || state.portalEdges.length === 0) {
+        listContainer.innerHTML = `<div style="color: #888; text-align: center; padding: 10px;">No Portal Edges to display.</div>`;
+        return;
+    }
+
+    state.portalEdges.forEach(edge => {
+        const itemElement = document.createElement("div");
+        itemElement.style.borderBottom = "1px solid #eee";
+        itemElement.style.padding = "8px 4px";
+
+        // Header
+        const header = document.createElement("div");
+        header.style.display = "flex";
+        header.style.justifyContent = "space-between";
+        header.style.alignItems = "center";
+        header.style.cursor = "pointer";
+
+        const labelSpan = document.createElement("span");
+        labelSpan.style.fontWeight = "500";
+        labelSpan.textContent = getPortalEdgeDisplayLabel(edge);
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "Delete";
+        deleteBtn.style.padding = "2px 6px";
+        deleteBtn.style.backgroundColor = "#d9534f";
+        deleteBtn.style.color = "white";
+        deleteBtn.style.border = "none";
+        deleteBtn.style.borderRadius = "3px";
+        deleteBtn.style.cursor = "pointer";
+
+        // Delete-Button Event Handler
+        deleteBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            deletePortalEdge(edge.id);
+            renderPortalEdgesList();
+            renderActiveGraph();
+        });
+
+        header.appendChild(labelSpan);
+        header.appendChild(deleteBtn);
+        itemElement.appendChild(header);
+
+        // Details (foldable)
+        const details = document.createElement("div");
+        details.style.display = "none";
+        details.style.marginTop = "8px";
+        details.style.padding = "8px";
+        details.style.backgroundColor = "#f9f9f9";
+        details.style.borderRadius = "4px";
+
+        details.innerHTML = `
+            <div style="margin-bottom: 8px;">
+                <label style="display: block; font-size: 12px; color: #555; margin-bottom: 2px;">Name:</label>
+                <input type="text" class="portal-name-input" value="${edge.name || ''}" style="width: 100%; box-sizing: border-box; padding: 4px;">
+            </div>
+            <div style="margin-bottom: 8px;">
+                <label style="display: block; font-size: 12px; color: #555; margin-bottom: 2px;">Weight (m):</label>
+                <input type="number" step="0.1" class="portal-weight-input" value="${edge.weight || 0}" style="width: 100%; box-sizing: border-box; padding: 4px;">
+            </div>
+            <div>
+                <label style="display: flex; align-items: center; font-size: 13px;">
+                    <input type="checkbox" class="portal-wheelchair-checkbox" ${edge.wheelchairAccessible ? "checked" : ""} style="margin-right: 6px;">
+                    Wheelchair accessible
+                </label>
+            </div>
+        `;
+
+        const nameInput = details.querySelector(".portal-name-input");
+        const weightInput = details.querySelector(".portal-weight-input");
+        const wheelchairCheckbox = details.querySelector(".portal-wheelchair-checkbox");
+
+        nameInput.addEventListener("input", (e) => {
+            edge.name = e.target.value;
+            labelSpan.textContent = getPortalEdgeDisplayLabel(edge);
+        });
+
+        weightInput.addEventListener("input", (e) => {
+            edge.weight = parseFloat(e.target.value) || 0;
+        });
+
+        wheelchairCheckbox.addEventListener("change", (e) => {
+            edge.wheelchairAccessible = e.target.checked;
+        });
+
+        // Fold-Out-Toggle
+        header.addEventListener("click", () => {
+            const isHidden = details.style.display === "none";
+            details.style.display = isHidden ? "#eaeaea" : "transparent";
+        });
+
+        itemElement.appendChild(details);
+        listContainer.appendChild(itemElement);
+    });
+}
+
+document.getElementById("toggle-portals-menu-btn").onclick = function() {
+    const container = document.getElementById("portal-edges-container");
+    if (!container) return;
+
+    const isHidden = container.classList.toggle("hidden");
+
+    if (!isHidden) {
+        this.style.backgroundColor = "#4A90E2";
+        renderPortalEdgesList();
+    } else {
+        this.style.backgroundColor = "#ffffff"
+    }
 };

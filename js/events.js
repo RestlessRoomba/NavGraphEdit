@@ -3,6 +3,8 @@ import { createNode } from './nodes.js';
 import { setTool } from './tools.js';
 import { state, getActiveGraph } from './state.js';
 import { isLatLngInsideActiveFloorplan } from './floorplans.js';
+import { updatePortalEdgeBanner, showInfoPanel } from './ui.js';
+import { cancelPortalEdgeCreation } from './portals.js';
 
 function handleMapClick(e) {
     if (state.currentTool !== "node") return;
@@ -79,5 +81,19 @@ document.addEventListener('keyup', function(e) {    // Control is up?
         });
         
         map.dragging.enable();  // Map draggable again
+    }
+});
+
+// Esc Key Listener (Cancel Portal Edge)
+document.addEventListener('keydown', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    if (e.key === 'Escape' && state.portalEdgeStartNode !== null) {
+        cancelPortalEdgeCreation();
+        updatePortalEdgeBanner();
+
+        if (state.selectedObject?.type === "node") {
+            showInfoPanel(state.selectedObject);
+        }
     }
 });
