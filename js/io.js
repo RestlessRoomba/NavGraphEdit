@@ -1,9 +1,12 @@
-import { state, createDefaultIndoorState, mergeIndoorDefaults } from './state.js';
+import { state, createDefaultIndoorState, mergeIndoorDefaults, findNodeLocation } from './state.js';
 import { createNode } from './nodes.js';
 import { createEdge } from './edges.js';
-import { updateVersionInput, hideInfoPanel, renderPortalEdgesList } from './ui.js';
+import { updateVersionInput, hideInfoPanel, renderPortalEdgesList, updatePortalEdgeBanner } from './ui.js';
 import { renderActiveGraph, clearAllRenderedLayers } from './render.js';
 import { loadFloorplanForActiveFloor } from './floorplans.js';
+import { generateUUID } from './utils.js';
+
+const CURRENT_SCHEMA_VERSION = 3    // Outdoor, Indoor, Portal Edges
 
 // Export
 export function exportGraph() {
@@ -14,6 +17,8 @@ export function exportGraph() {
             updatedAt: new Date().toISOString(),
             generator: "NavGraphEdit"
         },
+
+        portalEdges: state.portalEdges.map(edge => serializePortalEdge(edge)),
 
         outdoor: serializeGraph(state.outdoor),
 
@@ -54,7 +59,6 @@ export function importGraph(file) {
 
             clearAllRenderedLayers();
 
-            state.schemaVersion = importedData.metadata?.schemaVersion ?? 1;    // Get schemaVersion
             state.graphVersion = importedData.metadata?.graphVersion ?? 1;  // Get graphVersion
             updateVersionInput();
 
@@ -66,8 +70,13 @@ export function importGraph(file) {
                 throw new Error("Unknown graph JSON format.");
             }
 
+            state.schemaVersion = CURRENT_SCHEMA_VERSION;
+
             state.selectedObject = null;
             state.edgeStartNode = null;
+            state.portalEdgeStartNode = null;
+
+            updatePortalEdgeBanner();
 
             hideInfoPanel();
             renderPortalEdgesList();
@@ -97,7 +106,7 @@ export function importGraph(file) {
     reader.readAsText(file);
 }
 
-// New Format (V2)
+// New Format (V2 / V3)
 function importNewFormat(importedData) {
     state.outdoor = {
         nodes: [],
@@ -155,11 +164,13 @@ function importNewFormat(importedData) {
     if (activeBuilding && !activeBuilding.floors[state.indoor.activeFloorId]) {
         state.indoor.activeFloorId = Object.keys(activeBuilding.floors)[0];
     }
+
+    // Portal Edges
+    state.portalEdges = deserializePortalEdges(importedData.portalEdges ?? []);
 }
 
 // Old Outdoor-Only-Format (V1)
 function importLegacyOutdoorFormat(importedData) {
-    state.schemaVersion = 2;    // Gets updatet automatically
     state.graphVersion = importedData.metadata?.graphVersion ?? 1;
 
     state.outdoor = {
@@ -173,6 +184,7 @@ function importLegacyOutdoorFormat(importedData) {
     );
 
     state.indoor = createDefaultIndoorState();
+    state.portalEdges = [];
 }
 
 function deserializeGraphInto(data, graph) {
@@ -237,6 +249,35 @@ function deserializeGraphInto(data, graph) {
     }
 }
 
+// Portal Edges
+function deserializePortalEdges(rawPortalEdges) {
+    // Filter all invalid Portal Edges
+    return rawPortalEdges.filter(raw => {
+        const fromValid = raw.from?.nodeId && findNodeLocation(raw.from.nodeId) !== null;
+        const toValid = raw.to?.nodeId && findNodeLocation(raw.to.nodeId) !== null;
+
+        if (!fromValid || !toValid) {
+            console.warn("Portal edge import skipped, referenced node not found: ", raw);
+            return false;
+        }
+
+        return true;
+    }).map(raw => {
+        const fromLocation = findNodeLocation(raw.from.nodeId).location;
+        const toLocation = findNodeLocation(raw.to.nodeId).location;
+
+        return {
+            id: raw.id ?? generateUUID(),
+            type: "portalEdge",
+            name: raw.name ?? "",
+            weight: raw.weight ?? 0,
+            wheelchairAccessible: raw.wheelchairAccessible ?? true,
+            from: { nodeId: raw.from.nodeId, location: fromLocation },
+            to: { nodeId: raw.to.nodeId, location: toLocation }
+        };
+    });
+}
+
 function serializeGraph(graph) {
     return {
         nodes: graph.nodes.map(node => serializeNode(node)),
@@ -269,6 +310,17 @@ function serializeEdge(edge) {
         to: edge.to,
         wheelchairAccessible: edge.wheelchairAccessible ?? true,
         weight: edge.weight
+    };
+}
+
+function serializePortalEdge(edge) {
+    return {
+        id: edge.id,
+        name: edge.name ?? "",
+        weight: edge.weight ?? 0,
+        wheelchairAccessible: edge.wheelchairAccessible ?? true,
+        from: edge.from,
+        to: edge.to,
     };
 }
 

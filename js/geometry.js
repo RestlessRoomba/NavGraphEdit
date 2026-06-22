@@ -1,5 +1,7 @@
+import { getMetersPerPixel } from "./floorplans.js";
+
 // Decide which Formula to use
-export function calculateDistance(nodeA, nodeB) {
+export function calculateDistance(nodeA, nodeB, floorplan = null) {
     const isOutdoor =
         nodeA.lat !== undefined &&
         nodeA.lng !== undefined &&
@@ -17,7 +19,7 @@ export function calculateDistance(nodeA, nodeB) {
     }
 
     if (isIndoor) {
-        return calculateIndoorDistance(nodeA, nodeB);
+        return calculateIndoorDistance(nodeA, nodeB, floorplan);
     }
 
     throw new Error("Cannot calculate distance: incompatible node coordinates.");
@@ -44,9 +46,17 @@ function calculateOutdoorDistance(nodeA, nodeB) {
 }
 
 // Calculate Indoor Distance
-function calculateIndoorDistance(nodeA, nodeB) {
+function calculateIndoorDistance(nodeA, nodeB, floorplan) {
     const dx = nodeB.x - nodeA.x;
     const dy = nodeB.y - nodeA.y;
+    const pixelDistance = Math.sqrt(dx * dx + dy * dy);
 
-    return Math.sqrt(dx * dx + dy * dy); // Returns distance in PIXELS (FIX!)
+    const metersPerPixel = getMetersPerPixel(floorplan);
+
+    if (metersPerPixel === null) {
+        console.warn("Floorplan not calibrated (realWidthMeters missing) -> Weight is Pixels, not Meters.");
+        return pixelDistance;
+    }
+
+    return pixelDistance * metersPerPixel;
 }

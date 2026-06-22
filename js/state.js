@@ -11,7 +11,8 @@ export function createDefaultIndoorState() {
                 floors: {
                     "-01": {
                         floorplan: {
-                            imageRef: "floorplans/haus-1/-01.png"
+                            imageRef: "floorplans/haus-1/-01.png",
+                            realWidthMeters: null   // TODO
                         },
                         nodes: [],
                         edges: []
@@ -19,7 +20,8 @@ export function createDefaultIndoorState() {
 
                     "+00": {
                         floorplan: {
-                            imageRef: "floorplans/haus-1/+00.png"
+                            imageRef: "floorplans/haus-1/+00.png",
+                            realWidthMeters: null   // TODO
                         },
                         nodes: [],
                         edges: []
@@ -27,7 +29,8 @@ export function createDefaultIndoorState() {
 
                     "+01": {
                         floorplan: {
-                            imageRef: "floorplans/haus-1/+01.png"
+                            imageRef: "floorplans/haus-1/+01.png",
+                            realWidthMeters: null   // TODO
                         },
                         nodes: [],
                         edges: []
@@ -35,7 +38,8 @@ export function createDefaultIndoorState() {
 
                     "+02": {
                         floorplan: {
-                            imageRef: "floorplans/haus-1/+02.png"
+                            imageRef: "floorplans/haus-1/+02.png",
+                            realWidthMeters: null   // TODO
                         },
                         nodes: [],
                         edges: []
@@ -48,7 +52,8 @@ export function createDefaultIndoorState() {
                 floors: {
                     "+00": {
                         floorplan: {
-                            imageRef: "floorplans/haus-2/+00.png"
+                            imageRef: "floorplans/haus-2/+00.png",
+                            realWidthMeters: null   // TODO
                         },
                         nodes: [],
                         edges: []
@@ -56,7 +61,8 @@ export function createDefaultIndoorState() {
 
                     "+01": {
                         floorplan: {
-                            imageRef: "floorplans/haus-2/+01.png"
+                            imageRef: "floorplans/haus-2/+01.png",
+                            realWidthMeters: null   // TODO
                         },
                         nodes: [],
                         edges: []
@@ -69,7 +75,44 @@ export function createDefaultIndoorState() {
                 floors: {
                     "+00": {
                         floorplan: {
-                            imageRef: "floorplans/haus-6/+00.png"
+                            imageRef: "floorplans/haus-6/+00.png",
+                            realWidthMeters: 73.75
+                        },
+                        nodes: [],
+                        edges: []
+                    },
+
+                    "+01": {
+                        floorplan: {
+                            imageRef: "floorplans/haus-6/+01.png",
+                            realWidthMeters: 73.75
+                        },
+                        nodes: [],
+                        edges: []
+                    },
+
+                    "+02": {
+                        floorplan: {
+                            imageRef: "floorplans/haus-6/+02.png",
+                            realWidthMeters: 73.75
+                        },
+                        nodes: [],
+                        edges: []
+                    },
+
+                    "+03": {
+                        floorplan: {
+                            imageRef: "floorplans/haus-6/+03.png",
+                            realWidthMeters: 73.75
+                        },
+                        nodes: [],
+                        edges: []
+                    },
+
+                    "+04": {
+                        floorplan: {
+                            imageRef: "floorplans/haus-6/+04.png",
+                            realWidthMeters: 73.75
                         },
                         nodes: [],
                         edges: []
@@ -82,7 +125,8 @@ export function createDefaultIndoorState() {
                 floors: {
                     "-01": {
                         floorplan: {
-                            imageRef: "floorplans/haus-8/-01.png"
+                            imageRef: "floorplans/haus-8/-01.png",
+                            realWidthMeters: null   // TODO
                         },
                         nodes: [],
                         edges: []
@@ -90,7 +134,8 @@ export function createDefaultIndoorState() {
 
                     "+00": {
                         floorplan: {
-                            imageRef: "floorplans/haus-8/+00.png"
+                            imageRef: "floorplans/haus-8/+00.png",
+                            realWidthMeters: null   // TODO
                         },
                         nodes: [],
                         edges: []
@@ -98,7 +143,8 @@ export function createDefaultIndoorState() {
 
                     "+01": {
                         floorplan: {
-                            imageRef: "floorplans/haus-8/+01.png"
+                            imageRef: "floorplans/haus-8/+01.png",
+                            realWidthMeters: null   // TODO
                         },
                         nodes: [],
                         edges: []
@@ -112,7 +158,7 @@ export function createDefaultIndoorState() {
 export const state = {
     mode: "outdoor",
 
-    schemaVersion: 2,
+    schemaVersion: 3,   // JSON Schema Version 3 -> Outdoor, Indoor, Portal Edges
     graphVersion: 1,
 
     currentTool: "select",

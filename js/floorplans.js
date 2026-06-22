@@ -85,3 +85,13 @@ export function isLatLngInsideActiveFloorplan(latlng) {
         y <= maxY
     );
 }
+
+// Meters per Pixel
+export function getMetersPerPixel(floorplan) {
+    if (!floorplan?.realWidthMeters || !floorplan?.bounds) return null;
+
+    const pixelWidth = floorplan.bounds[1][1];
+    if (!pixelWidth) return null;
+
+    return floorplan.realWidthMeters / pixelWidth;
+}

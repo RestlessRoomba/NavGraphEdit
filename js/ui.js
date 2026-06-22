@@ -4,7 +4,7 @@ import { exportGraph, importGraph } from './io.js';
 import { createEdge } from './edges.js';
 import { createNode, updateNodeMarkerColor } from './nodes.js';
 import { setMode } from './mode.js';
-import { loadFloorplanForActiveFloor } from './floorplans.js';
+import { loadFloorplanForActiveFloor, getMetersPerPixel } from './floorplans.js';
 import { renderActiveGraph, clearActiveGraphLayers } from './render.js';
 import { 
     handlePortalEdgeNodeClick,
@@ -214,11 +214,16 @@ export function showInfoPanel(obj) {
     if (obj.type === "edge") {  // For Edges
         title.textContent = "Edge";
 
+        const isUncalibrated = state.mode === "indoor" && getMetersPerPixel(getActiveGraph().floorplan) === null;
+        const weightLabel = isUncalibrated
+        ? `${obj.weight.toFixed(2)} px (uncalibrated)`
+        : `${obj.weight.toFixed(2)} m`;
+
         content.innerHTML = `
             <div>UUID: ${obj.id}</div>
             <div>From: ${obj.from}</div>
             <div>To: ${obj.to}</div>
-            <div>Weight: ${obj.weight.toFixed(2)} m</div>
+            <div>Weight: ${weightLabel}</div>
 
             <div>
                 <label>
