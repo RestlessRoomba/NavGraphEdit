@@ -1,3 +1,6 @@
+# Sehr geehrter Professor Roschke, diesen Branch bitte nicht in die Wertung einbeziehen, da das Programm hier außerhalb der Portfolioprüfung weiterentwickelt wird.
+
+
 # NavGraphEdit
 
 NavGraphEdit ist ein browserbasiertes Werkzeug zur Erstellung und Bearbeitung von Routengraphen für die HSMW-Navigationsanwendung. Es unterstützt sowohl die Erstellung von Routennetzen für den Außenbereich als auch für die Indoor-Navigation innerhalb von Gebäuden.
